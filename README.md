@@ -33,12 +33,44 @@ A configurable and robust Node.js script using Playwright to scrape websites lis
     *   Optional iFrame Content Scanning.
 *   **User Experience:** Displays progress using a multi-bar console interface (`cli-progress`).
 
+## Quickstart
+
+Get up and running with the scraper quickly.
+
+1.  **Check Node.js:** Ensure you have Node.js (v18 or higher recommended) and npm installed. You can check by running:
+    ```bash
+    node -v
+    npm -v
+    ```
+    If not installed, download from [nodejs.org](https://nodejs.org/).
+
+2.  **Download Script:** Obtain the `scraper.js` file and place it in a directory.
+
+3.  **Navigate:** Open your terminal or command prompt and go to the script directory:
+    ```bash
+    cd /path/to/your/script/directory
+    ```
+
+4.  **Install Dependencies:** Install the required Node.js packages:
+    ```bash
+    npm install playwright csv-parser csv-writer async-mutex limiter cli-progress robots-parser yargs
+    ```
+
+5.  **Install Playwright Browsers:** Download the necessary browser binaries for Playwright:
+    ```bash
+    npx playwright install
+    ```
+
+6.  **Prepare Input:** Create a CSV file (e.g., `test.csv`) with a column named `Website` containing the URLs you want to scrape.
+
+7.  **Run the Scraper:** Execute the script using Node.js:
+    ```bash
+    node scraper.js -i test.csv
+    ```
+    The results will be saved in a report file (e.g., `test_report.csv`).
+
+=======
 ## Prerequisites
-
-*   **Node.js:** Version 18 or higher recommended (uses global `fetch`). For older versions, you might need to install and uncomment `node-fetch`.
-*   **npm** or **yarn:** For installing dependencies.
-
-## Installation
 
 1.  **Clone or Download:** Get the script file (`scraper.js`) and any accompanying `.txt` list files (like `proxies.txt`, `user_agents.txt`, etc.) into a directory.
 2.  **Navigate:** Open your terminal or command prompt and navigate into that directory:
