@@ -73,6 +73,8 @@ web_modules/
 *_report.csv
 errors.log
 scraper_state.json
+files.py
+project_scan.txt
 
 # Sensitive configuration (uncomment if your proxies are private/paid)
 proxies.txt
