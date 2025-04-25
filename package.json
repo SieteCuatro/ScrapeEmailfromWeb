@@ -1,0 +1,34 @@
+{
+    "name": "csv-website-email-scraper",
+    "version": "1.0.0",
+    "description": "Scrapes emails from websites listed in a CSV file using Playwright, with concurrency, filtering, and progress reporting.",
+    "main": "scraper.js",
+    "scripts": {
+        "start": "node scraper.js",
+        "setup:playwright": "npx playwright install --with-deps",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "playwright",
+        "scraper",
+        "email",
+        "csv",
+        "crawler",
+        "automation"
+    ],
+    "author": "Your Name <your.email@example.com>",
+    "license": "ISC",
+    "engines": {
+        "node": ">=16.0.0"
+    },
+    "dependencies": {
+        "async-mutex": "^0.4.0",
+        "cli-progress": "^3.12.0",
+        "csv-parser": "^3.0.0",
+        "csv-writer": "^1.6.0",
+        "limiter": "^2.1.0",
+        "playwright": "^1.40.0",
+        "robots-parser": "^3.0.1",
+        "yargs": "^17.7.2"
+    }
+}
