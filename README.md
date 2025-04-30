@@ -1,217 +1,269 @@
-# Node.js Playwright Email Scraper
+# Advanced Email Scraper (Playwright)
 
-A configurable and robust Node.js script using Playwright to scrape websites listed in a CSV file for email addresses. It features concurrency, retries, block detection, state management, detailed reporting, and various performance optimizations.
+[![Node.js CI](https://github.com/SieteCuatro/ScrapeEmailfromWeb/actions/workflows/node.js.yml/badge.svg)](https://github.com/SieteCuatro/ScrapeEmailfromWeb/actions/workflows/node.js.yml) <!-- Optional: Add a CI badge if you set up GitHub Actions -->
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) <!-- Optional: Add a LICENSE file -->
 
-## Features
+A robust and configurable Node.js script for scraping email addresses from a list of websites provided in a CSV file. It leverages Playwright for accurate browser automation and includes features for concurrency, retries, filtering, state management, block detection, and detailed reporting.
+
+## ✨ Features
 
 *   **CSV Input:** Reads target websites from a specified column in a CSV file.
-*   **Concurrent Scraping:** Uses multiple browser contexts to process URLs concurrently (configurable).
-*   **Playwright Powered:** Leverages Playwright for robust browser automation (supports Chromium, Firefox, WebKit).
-*   **Deep Crawling:** Optionally crawls linked pages within the same domain up to a specified depth (`maxDepth`).
-*   **Email Extraction:** Finds emails using regex (including `[at]`, `[dot]` variations) and checks `data-email` attributes.
-*   **Filtering:** Excludes emails, domains, URL patterns, and file extensions based on configurable lists (loaded from files or defaults).
-*   **Robustness:**
-    *   **Retries:** Automatic retries for navigation failures and element actions.
-    *   **Block Detection:** Attempts to identify and skip pages protected by Cloudflare, CAPTCHAs, etc. (Adds blocked domains to a temporary skip list).
-    *   **`robots.txt`:** Respects `robots.txt` rules (configurable).
-    *   **Per-Domain Delay:** Enforces a minimum delay between requests to the same domain.
-    *   **Context Restart:** Automatically restarts browser contexts after a certain number of tasks or time to mitigate memory leaks or instability.
-*   **Performance:**
-    *   **Resource Blocking:** Blocks specified resource types (images, CSS, fonts) and URL patterns (analytics, ads) to speed up page loads.
-    *   **Headless Mode:** Runs browsers headlessly by default (configurable).
-*   **Configuration:**
-    *   Highly configurable via command-line arguments and defaults within the script.
-    *   Loads external lists for user agents, proxies, filters, etc., from `.txt` files.
-*   **State Management:** Saves visited URLs to a `scraper_state.json` file, allowing the script to resume without reprocessing completed URLs.
-*   **Reporting:**
-    *   Generates a detailed CSV report (`<input_filename>_report.csv`) with status (Success, Error, Skipped, Blocked), timestamps, page titles, raw emails found, *new* unique emails added during the run, worker ID, user agent/proxy used, and optionally the original CSV data.
-    *   Logs errors and warnings to `errors.log`.
-*   **Advanced Options:**
-    *   User-Agent Rotation.
-    *   Proxy Support (rotates through a provided list).
-    *   Optional DNS MX Record Validation for found email domains (slows down scraping significantly).
-    *   Optional iFrame Content Scanning.
-*   **User Experience:** Displays progress using a multi-bar console interface (`cli-progress`).
+*   **Concurrent Scraping:** Processes multiple websites simultaneously using Playwright browser contexts for speed.
+*   **Configurable Depth:** Can crawl linked pages up to a specified depth (`maxDepth`).
+*   **Robust Error Handling:** Implements retries for navigation and actions, logs errors, and handles common issues gracefully.
+*   **Detailed Reporting:** Generates a comprehensive CSV report (`_report.csv`) with status, emails found, timestamps, metadata, and optional original data.
+*   **State Management:** Saves visited URLs (`scraper_state.json`) to prevent re-scraping and allow resuming interrupted runs.
+*   **Extensive Filtering:**
+    *   Filters emails based on common patterns and custom blocklists (`email_filter.txt`).
+    *   Excludes specific domains (`excluded_domains.txt`).
+    *   Skips URLs based on file extensions (`excluded_extensions.txt`) or URL path patterns (`excluded_patterns.txt`).
+*   **Performance Optimization:**
+    *   Blocks unnecessary resources (images, CSS, fonts, tracking scripts) via `blockResourceTypes` and `blockUrlPatterns`.
+    *   Configurable timeouts and wait conditions.
+    *   Context Recycling: Automatically restarts browser contexts after a certain number of tasks or time to mitigate memory leaks.
+*   **Anti-Blocking Features:**
+    *   User-Agent Rotation (`useUserAgents`, `user_agents.txt`).
+    *   Proxy Support (`useProxies`, `proxies.txt`).
+    *   Optional `robots.txt` respect (`respectRobotsTxt`).
+    *   Basic block detection (Cloudflare, CAPTCHA challenges) (`detectBlocks`).
+    *   Optional per-domain request delay (`minDelayPerDomain`).
+*   **Advanced Extraction:**
+    *   Optional scanning of Shadow DOM (`scanShadowDOM`).
+    *   Optional scanning of iFrames (`scanIFrames`).
+    *   Optional email domain MX record validation (`validateDomainMX` - significantly increases time).
+*   **User-Friendly:**
+    *   Dependency check on startup.
+    *   Command-line interface (`yargs`) for easy configuration overrides.
+    *   Progress bar (`cli-progress`) for visual feedback.
+    *   Graceful shutdown on `Ctrl+C` (SIGINT).
 
-## Quickstart
+## 📋 Prerequisites
 
-Get up and running with the scraper quickly.
+*   **Node.js:** Version 18.x or higher recommended (uses native `fetch`).
+*   **npm** (or yarn)
 
-1.  **Check Node.js:** Ensure you have Node.js (v18 or higher recommended) and npm installed. You can check by running:
+## 🚀 Installation
+
+1.  **Clone the repository:**
     ```bash
-    node -v
-    npm -v
-    ```
-    If not installed, download from [nodejs.org](https://nodejs.org/).
-
-2.  **Download Script:** Obtain the `scraper.js` file and place it in a directory.
-
-3.  **Navigate:** Open your terminal or command prompt and go to the script directory:
-    ```bash
-    cd /path/to/your/script/directory
+    git clone https://github.com/SieteCuatro/ScrapeEmailfromWeb.git
+    cd ScrapeEmailfromWeb
     ```
 
-4.  **Install Dependencies:** Install the required Node.js packages:
+2.  **Install dependencies:**
     ```bash
-    npm install playwright csv-parser csv-writer async-mutex limiter cli-progress robots-parser yargs
+    npm install
     ```
 
-5.  **Install Playwright Browsers:** Download the necessary browser binaries for Playwright:
+3.  **Install Playwright browsers:** This is a crucial step!
     ```bash
     npx playwright install
+    # Or install only a specific browser: npx playwright install chromium
     ```
 
-6.  **Prepare Input:** Create a CSV file (e.g., `test.csv`) with a column named `Website` containing the URLs you want to scrape.
+4.  **Prepare Input File:**
+    *   Create a CSV file (e.g., `input.csv`) in the project directory.
+    *   Ensure it has a column containing the websites to scrape. By default, the script looks for a column named `Website`. You can change this with the `--websiteColumnName` option or in the configuration.
+    *   Example `input.csv`:
+        ```csv
+        CompanyName,Website,OtherData
+        Example Corp,"http://example.com",Some info
+        Test Site,"https://test-site.org",More data
+        No Protocol,"domain.net",Data
+        ```
 
-7.  **Run the Scraper:** Execute the script using Node.js:
+5.  **(Optional) Prepare Filter/List Files:**
+    *   Create any necessary `.txt` files (e.g., `proxies.txt`, `user_agents.txt`, `email_filter.txt`) in the project directory if you want to override or extend the default lists.
+    *   Format: One item per line. Lines starting with `#` are ignored as comments.
+    *   Example `email_filter.txt`:
+        ```txt
+        # Ignore common placeholders
+        @example.
+        @domain.
+        # Ignore specific domains
+        spamdomain.com
+        # Ignore specific addresses
+        noreply@
+        ```
+
+## ⚡ Quick Start
+
+1.  Make sure you have created your input CSV file (e.g., `input.csv`) with a `Website` column.
+2.  Run the script with the input file specified:
     ```bash
-    node scraper.js -i test.csv
+    node scraper.js -i input.csv
     ```
-    The results will be saved in a report file (e.g., `test_report.csv`).
+3.  The script will start processing the URLs. You will see progress updates in the console (or a progress bar).
+4.  Once finished, check the output files:
+    *   `input_report.csv`: Contains detailed results for each URL processed.
+    *   `scraper_state.json`: Stores visited URLs for future runs.
+    *   `errors.log`: Logs any errors encountered during the run.
 
-=======
-## Prerequisites
-
-1.  **Clone or Download:** Get the script file (`scraper.js`) and any accompanying `.txt` list files (like `proxies.txt`, `user_agents.txt`, etc.) into a directory.
-2.  **Navigate:** Open your terminal or command prompt and navigate into that directory:
-    ```bash
-    cd /path/to/your/script/directory
-    ```
-3.  **Install Dependencies:**
-    ```bash
-    npm install playwright csv-parser csv-writer async-mutex limiter cli-progress robots-parser yargs
-    # Or using yarn:
-    # yarn add playwright csv-parser csv-writer async-mutex limiter cli-progress robots-parser yargs
-    ```
-    *(Note: `limiter` is installed but the global rate limiting feature (`useRateLimiting`) might not be fully utilized in the current task loop logic; per-domain delay is the primary rate control.)*
-4.  **Install Playwright Browsers:** This is crucial!
-    ```bash
-    npx playwright install
-    # You can install specific browsers if needed:
-    # npx playwright install chromium
-    ```
-
-## Configuration
-
-The script can be configured in several ways:
-
-1.  **Defaults:** Modify the `defaultConfig` object directly within the script file (`scraper.js`) for baseline settings.
-2.  **Command-Line Arguments:** Override defaults using CLI flags (see `Usage` below). Use `--help` for a full list.
-    *   Example: `-c 8` sets concurrency to 8. `--headless false` runs browsers visibly.
-3.  **External `.txt` Files:** Place `.txt` files (e.g., `user_agents.txt`, `proxies.txt`, `email_filter.txt`, `excluded_domains.txt`, `excluded_extensions.txt`, `excluded_patterns.txt`, `blocklist_patterns.txt`) in the same directory as the script. The script will load these lists and merge them with the default lists defined in `defaultConfig`. Each line in the file is treated as an entry (lines starting with `#` are ignored).
-
-**Key Configuration Options (via CLI or `defaultConfig`):**
-
-*   `inputFile` (`-i`, `--inputFile`): Path to the input CSV file (Default: `test.csv`).
-*   `websiteColumnName` (`--websiteColumnName`): Name of the column in the CSV containing website URLs (Default: `Website`).
-*   `concurrency` (`-c`, `--concurrency`): Number of browser contexts to run in parallel (Default: System CPU core count - 1, min 4). **Start low (e.g., 4) and increase cautiously!**
-*   `maxDepth` (`-d`, `--maxDepth`): How many levels deep to crawl links on the same domain (0 = only the initial URL, 1 = initial URL + links found on it, etc.) (Default: 0).
-*   `headless` (`--headless`): Run browsers without a visible UI (Default: `true`). Set to `false` for debugging.
-*   `browserType` (`--browserType`): Browser engine to use (`chromium`, `firefox`, `webkit`) (Default: `chromium`).
-*   `pageLoadTimeout` (`--pageLoadTimeout`): Max time in milliseconds to wait for a page to load (Default: 15000).
-*   `respectRobotsTxt` (`--respectRobotsTxt`): Whether to obey `robots.txt` rules (Default: `true`).
-*   `validateDomainMX` (`--validateDomainMX`): Check if the domain of found emails has valid MX records (significantly increases runtime) (Default: `false`).
-*   `reportFileSuffix` (`--reportFileSuffix`): Suffix for the output report file (Default: `_report.csv`).
-*   `appendToReportFile` (`--appendToReportFile`): Append to the report file if it exists (Default: `false`).
-*   `includeOriginalDataInReport` (`--includeOriginalDataInReport`): Add all columns from the original input CSV to the report (Default: `false`).
-*   `stateFile` (`--stateFile`): Name of the file to store visited URLs (Default: `scraper_state.json`).
-*   `useProgressBar` (`--useProgressBar`): Display the console progress bar (Default: `true`).
-
-## Usage
-
-Run the script from your terminal using Node.js:
+## ⚙️ Usage
 
 ```bash
 node scraper.js [options]
 ```
 
-**Examples:**
+**Common Options:**
 
-*   **Basic Run (using defaults):**
-    ```bash
-    # Assumes input file is test.csv
-    node scraper.js
+*   `-i, --inputFile <file>`: Path to the input CSV file (default: `test.csv`). **(Required in most cases)**
+*   `-c, --concurrency <number>`: Number of websites to process concurrently (default: system CPU core count - 1, min 4). **Start low (e.g., 4 or 8)!**
+*   `-d, --maxDepth <number>`: Maximum depth to crawl links (0 = only scrape the initial URL, 1 = scrape initial URL and its direct links, etc.) (default: `0`).
+*   `--websiteColumnName <name>`: Name of the column in the CSV containing website URLs (default: `Website`).
+*   `--headless <boolean>`: Run browsers in headless mode (true/false) (default: `true`). Set to `false` to see the browsers operate.
+*   `--browserType <type>`: Browser engine to use (`chromium`, `firefox`, `webkit`) (default: `chromium`).
+*   `--reportFileSuffix <suffix>`: Suffix for the generated report file (default: `_report.csv`).
+*   `--appendToReportFile <boolean>`: Append to the report file if it exists (default: `false`).
+*   `--includeOriginalDataInReport <boolean>`: Include all columns from the input CSV in the report (default: `false`).
+*   `--useProgressBar <boolean>`: Show a progress bar during scraping (default: `true`).
+*   `-h, --help`: Show help information.
+
+*For a full list of options and their defaults, see the Configuration section below or run `node scraper.js --help`.*
+
+## 🔧 Configuration
+
+The script uses a layered configuration approach:
+
+1.  **Defaults:** Defined in the `defaultConfig` object within `scraper.js`.
+2.  **External Files:** Lists like user agents, proxies, and filters are loaded from `.txt` files specified in the config (e.g., `userAgentsFile`, `proxiesFile`). These *extend* the default lists.
+3.  **Command-Line Arguments:** Options provided via the CLI (e.g., `-c 8`) override defaults and file-loaded settings.
+
+**Key Configuration Options (Defaults shown):**
+
+*(See `defaultConfig` in `scraper.js` for the complete list)*
+
+**Basic Settings:**
+
+*   `inputFile: 'test.csv'`: Input CSV filename.
+*   `pageLoadTimeout: 15000`: Max time (ms) to wait for page navigation.
+*   `maxDepth: 0`: Max crawl depth (0 = initial URL only).
+*   `concurrency: os.cpus().length > 2 ? os.cpus().length - 1 : 4`: Number of parallel browser contexts. **Adjust based on system resources!**
+*   `websiteColumnName: 'Website'`: CSV column header for URLs.
+
+**Retries:**
+
+*   `navigationRetries: 2`: Number of times to retry page navigation on failure.
+*   `retryDelay: 2000`: Base delay (ms) before retrying navigation (increases with attempts).
+*   `elementActionRetries: 1`: Number of times to retry element actions (like getting content).
+*   `elementActionRetryDelay: 500`: Delay (ms) before retrying element actions.
+
+**Filtering (Defaults + External Files):**
+
+*   `emailFilter: [...]` / `emailFilterFile: 'email_filter.txt'`: Strings/patterns to filter out found emails.
+*   `excludedDomains: [...]` / `excludedDomainsFile: 'excluded_domains.txt'`: Domains to completely ignore during scraping and crawling.
+*   `excludedExtensions: [...]` / `excludedExtensionsFile: 'excluded_extensions.txt'`: File extensions to ignore when crawling links.
+*   `excludedPatterns: [...]` / `excludedPatternsFile: 'excluded_patterns.txt'`: URL path patterns to ignore when crawling links (e.g., `/cart/`, `/login`).
+
+**Performance & Behavior:**
+
+*   `useRateLimiting: false`: Enable global rate limiting (tokens/sec based on concurrency).
+*   `useUserAgents: true` / `userAgentsFile: 'user_agents.txt'`: Rotate User-Agent strings.
+*   `useProxies: false` / `proxiesFile: 'proxies.txt'`: Use proxies (format: `protocol://ip:port` or `protocol://user:pass@ip:port`). Proxies are assigned round-robin to workers.
+*   `browserType: 'chromium'`: Playwright browser (`chromium`, `firefox`, `webkit`).
+*   `headless: true`: Run browser without UI.
+*   `pageWaitUntil: 'domcontentloaded'`: Playwright navigation wait state (`load`, `domcontentloaded`, `networkidle`, `commit`).
+*   `blockResourceTypes: [...]`: Resource types to block (e.g., `image`, `stylesheet`, `font`).
+*   `blockUrlPatterns: [...]` / `blocklistPatternsFile: 'blocklist_patterns.txt'`: URL patterns to block (e.g., analytics, ads, tracking pixels).
+*   `postLoadDelay: 500`: Additional delay (ms) after page load before extraction.
+*   `waitForSelector: null`: CSS selector to wait for before extraction.
+*   `waitForSelectorTimeout: 5000`: Max time (ms) to wait for `waitForSelector`.
+*   `extractionMethod: 'innerText'`: How to get page content ('innerText', 'content' (HTML), 'both').
+*   `emailLocationSelectors: []`: Specific CSS selectors to extract text from for email searching (if non-empty, overrides `extractionMethod`).
+*   `minDelayPerDomain: 500`: Minimum delay (ms) between requests *to the same domain* across all workers.
+*   `contextMaxTasks: 200`: Max number of tasks a browser context handles before restarting.
+*   `contextMaxTimeMinutes: 60`: Max time (minutes) a browser context runs before restarting.
+
+**Output:**
+
+*   `outputFormat: 'csv'`: Primarily affects report delimiter (',' for csv).
+*   `reportFileSuffix: '_report.csv'`: Suffix for the detailed report file.
+*   `appendToReportFile: false`: Append to report file if it exists.
+*   `includeOriginalDataInReport: false`: Add original CSV columns to the report.
+*   `emailSeparator: '; '`: Separator used for multiple emails in report cells.
+
+**State:**
+
+*   `stateFile: 'scraper_state.json'`: File to save/load visited URLs.
+
+**Progress Reporting:**
+
+*   `useProgressBar: true`: Display the `cli-progress` bar.
+
+**Robots & Block Detection:**
+
+*   `respectRobotsTxt: true`: Check `robots.txt` before scraping/crawling.
+*   `userAgentIdentifier: 'EmailScraperBot/1.1 (+http://example.com/bot-info)'`: User-Agent used for `robots.txt` checks.
+*   `detectBlocks: true`: Enable detection of Cloudflare/CAPTCHA pages.
+*   `blockKeywords: [...]`: Keywords in page title/content indicating a block.
+*   `blockSelectors: [...]`: CSS selectors indicating a block page.
+
+**Advanced Extraction:**
+
+*   `scanShadowDOM: false`: Attempt to extract text from Shadow DOM elements.
+*   `scanIFrames: false`: Attempt to extract text from iFrames.
+*   `validateDomainMX: false`: Check DNS MX records for email domains (slows down scraping significantly).
+*   `maxIframeScanDepth: 1`: Recursion depth for scanning nested iFrames.
+
+**External List File Format (`.txt`):**
+
+*   One item per line.
+*   Blank lines are ignored.
+*   Lines starting with `#` are treated as comments and ignored.
+*   Example `proxies.txt`:
+    ```txt
+    # SOCKS5 Proxy
+    socks5://127.0.0.1:9050
+    # HTTP Proxy with Auth
+    http://user:password@proxy.example.com:8080
+    # Simple HTTP Proxy
+    http://192.168.1.100:3128
     ```
-*   **Specify Input File:**
-    ```bash
-    node scraper.js -i my_websites.csv
-    ```
-*   **Set Concurrency and Crawl Depth:**
-    ```bash
-    node scraper.js -i leads.csv -c 8 -d 1
-    ```
-*   **Run Visibly (Non-Headless):**
-    ```bash
-    node scraper.js -i data.csv --headless false
-    ```
-*   **Get Help:**
-    ```bash
-    node scraper.js --help
-    ```
 
-*(If you make the script executable (`chmod +x scraper.js`), you can run it directly: `./scraper.js [options]`)*
+## 📄 Output Files
 
-## Input Format
+*   **`<input_filename>_report.csv`:** (e.g., `input_report.csv`)
+    *   The main output file containing detailed results for each processed URL.
+    *   **Columns:**
+        *   `InputURL`: The original URL from the input CSV.
+        *   `NormalizedURL`: The standardized URL used for scraping.
+        *   `Status`: Outcome (e.g., `Success`, `Error`, `Skipped`, `Blocked`, `Navigation Error`, `Proxy Error`).
+        *   `StatusDetail`: More info (error message, skip reason, email count).
+        *   `Timestamp`: ISO timestamp of when processing finished for the URL.
+        *   `PageTitle`: Title of the scraped page (if successful).
+        *   `EmailsFoundRaw`: All potential emails found on the page (before MX validation), separated by `emailSeparator`.
+        *   `NewUniqueEmailsAdded`: Emails found on this page that were not previously found in *this run*, separated by `emailSeparator`.
+        *   `UserAgentUsed`: The User-Agent string used for this request.
+        *   `ProxyUsed`: The proxy server used (if any).
+        *   `WorkerID`: The internal worker ID that processed the URL.
+        *   `Original_*`: Columns from the input CSV (if `includeOriginalDataInReport` is true).
+*   **`scraper_state.json`:**
+    *   Stores a list of normalized URLs that have already been visited (successfully scraped, skipped, or failed definitively).
+    *   Used on subsequent runs to avoid re-processing the same pages. Automatically loaded if it exists.
+*   **`errors.log`:**
+    *   Logs detailed error messages, including timestamps, URLs, worker IDs, and stack traces (where applicable). Useful for debugging failed scrapes.
 
-*   The input file must be a CSV.
-*   It must contain a header row.
-*   It needs a column containing the websites to scrape. By default, the script looks for a column named `Website`. You can specify a different column name using the `--websiteColumnName` option.
-*   URLs should ideally include the scheme (`http://` or `https://`). The script attempts to add `http://` if missing.
+## 💡 Advanced Topics
 
-**Example `input.csv`:**
+*   **Proxies:** Ensure your proxies are working and match the format `protocol://[user:pass@]host:port`. The script assigns proxies round-robin to workers. If a proxy causes navigation errors, it might lead to task failures (`Proxy Error` status).
+*   **User Agents:** Provide a good list of diverse, realistic user agents in `user_agents.txt` for better anti-blocking.
+*   **Block Detection:** The `detectBlocks` feature uses keywords and selectors. It might not catch all blocking mechanisms. If blocked (`Blocked` status), the domain is temporarily added to an internal blocklist for the current run.
+*   **MX Validation:** Enabling `validateDomainMX` significantly slows down the process due to DNS lookups for every unique email domain found. It helps filter out emails with invalid domains but adds considerable overhead.
+*   **iFrame/Shadow DOM:** Scanning these can find hidden emails but increases page interaction time and complexity, potentially leading to more errors on complex sites.
+*   **Concurrency:** High concurrency (`-c`) requires significant RAM and CPU. Start low (e.g., 4, 8) and increase gradually while monitoring system performance (`htop`, Task Manager). Too high concurrency can lead to browser crashes, timeouts, and instability.
 
-```csv
-CompanyName,Website,ContactPerson
-Example Corp,"http://example.com",Jane Doe
-Test Inc,"https://test-site.org",John Smith
-Another Biz,"www.another-biz.net",
-```
+## 🐛 Troubleshooting
 
-## Output Files
+*   **Dependency Errors on Start:** Run `npm install` again. Ensure all dependencies listed at the top of `scraper.js` are installed.
+*   **Playwright Errors (`browserType.launch: Executable doesn't exist`):** Run `npx playwright install` to download the necessary browser binaries.
+*   **High RAM/CPU Usage:** Lower the concurrency (`-c <lower_number>`). Increase context recycling frequency (`contextMaxTasks`, `contextMaxTimeMinutes`). Block more resources (`blockResourceTypes`, `blockUrlPatterns`).
+*   **Many Timeouts (`Navigation Timeout Exceeded`):** Increase `pageLoadTimeout`. Check network connection. The target sites might be slow or blocking. Try lowering concurrency.
+*   **Blocked Errors:** The target website is likely detecting the scraper. Try using proxies (`--useProxies`), rotating user agents (`--useUserAgents`), increasing delays (`--minDelayPerDomain`, `--postLoadDelay`), or running with `--headless false` to observe behavior. Check `robots.txt` manually.
+*   **No Emails Found:** Verify the target websites actually contain emails in plain text or common `data-` attributes. Check if `emailFilter` is too aggressive. Try `extractionMethod: 'both'`.
+*   **Report File Issues:** Ensure the script has write permissions in the output directory. Check for invalid characters in data if using `includeOriginalDataInReport`.
 
-The script generates the following files in the same directory as the input CSV:
+## 🙌 Contributing
 
-1.  **`<input_filename>_report.csv`:**
-    *   Contains detailed results for each URL processed (or skipped).
-    *   Columns include: `InputURL`, `NormalizedURL`, `Status` (e.g., Success, Error, Skipped, Blocked), `StatusDetail` (error message or email count), `Timestamp`, `PageTitle`, `EmailsFoundRaw` (all emails found on the page, semi-colon separated), `NewUniqueEmailsAdded` (emails found by this task *not previously seen* in the entire run), `UserAgentUsed`, `ProxyUsed`, `WorkerID`, and optionally columns from the original CSV (`Original_ColumnName`).
-2.  **`errors.log`:**
-    *   Logs detailed errors, warnings, and context restarts encountered during runtime. Useful for debugging.
-3.  **`scraper_state.json`:**
-    *   Stores a list of successfully visited or intentionally skipped (e.g., by robots.txt) normalized URLs.
-    *   On subsequent runs, the script loads this file to avoid re-scraping these URLs. Delete this file to start fresh.
+Contributions, issues, and feature requests are welcome! Please feel free to open an issue or submit a pull request on the [GitHub repository](https://github.com/SieteCuatro/ScrapeEmailfromWeb).
 
-## Important Notes & Considerations
-
-*   **Concurrency & System Resources:** High concurrency requires significant CPU, RAM, and network bandwidth. Start with a low concurrency value (`-c 4` or `-c 8`) and monitor your system's performance before increasing it. Too high a value can lead to crashes or instability.
-*   **Legality & Ethics:** Web scraping can be legally complex. **Always** respect `robots.txt` (`--respectRobotsTxt true` is the default). Check the target websites' **Terms of Service**. Do not overload websites with requests (use reasonable concurrency and `minDelayPerDomain`). Ensure compliance with data privacy regulations (like GDPR, CCPA) and anti-spam laws when using collected email addresses. Use this script responsibly.
-*   **Block Detection:** The block detection mechanism is based on common keywords and selectors but is **not foolproof**. Websites constantly change their blocking strategies.
-*   **Memory Usage:** Playwright can consume considerable memory. The context restarting feature helps, but monitor usage during long runs.
-*   **MX Validation:** Enabling `--validateDomainMX` significantly slows down the process due to the DNS lookups involved for every unique email domain found.
-*   **Error Handling:** While the script tries to handle many errors, unexpected website structures or network issues can still cause failures. Check `errors.log` for details.
-
-## License
-
-(Optional: Add your license here, e.g., MIT)
-
-```
-MIT License
-
-Copyright (c) [Year] [Your Name/Organization]
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+## 📄 License
