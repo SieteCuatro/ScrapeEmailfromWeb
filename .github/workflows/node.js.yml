@@ -1,0 +1,53 @@
+# .github/workflows/node.js.yml
+
+name: Node.js CI
+
+# Controls when the workflow will run
+on:
+  push:
+    branches: [ "master" ] # Or your default branch name
+  pull_request:
+    branches: [ "master" ] # Or your default branch name
+
+jobs:
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    strategy:
+      # Defines a matrix of configurations to run the job with
+      matrix:
+        node-version: [18.x, 20.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Sets up the specified Node.js version and enables npm caching
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm' # Automatically caches npm dependencies based on package-lock.json
+
+      # Installs project dependencies
+      - name: Install Dependencies
+        run: npm install
+
+      # Installs Playwright browser(s) needed by the script
+      # Using --with-deps chromium installs Chromium and its OS dependencies,
+      # which is often sufficient and faster for CI environments.
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      # Runs a basic check to ensure the script can start and parse arguments
+      # This verifies dependencies are met and there are no immediate syntax errors.
+      # Note: This does NOT run a full scrape, which is often too slow/unreliable for CI.
+      - name: Run Basic Script Check (--help)
+        run: node scraper.js --help
+
+      # Optional: Add linting step if you have ESLint configured
+      # - name: Run Linter
+      #   run: npm run lint # Assuming you have a "lint" script in package.json
